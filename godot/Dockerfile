@@ -1,0 +1,29 @@
+# Use a base image with the desired operating system
+FROM ubuntu:latest
+
+# Set the working directory
+WORKDIR /app
+
+# Install necessary dependencies
+RUN apt-get update && apt-get install -y \
+  curl \
+  unzip
+
+# Download and extract the Godot v4 binary
+RUN curl -LO https://github.com/godotengine/godot-builds/releases/download/4.2.1-stable/Godot_v4.2.1-stable_linux.x86_64.zip \
+  && unzip Godot_v4.2.1-stable_linux.x86_64.zip \
+  && rm Godot_v4.2.1-stable_linux.x86_64.zip
+
+# install libfontconfig.so
+RUN apt install -y fontconfig
+
+# Copy your Godot game server project to the container
+COPY . /app
+
+EXPOSE 8080
+
+# Set the entrypoint to start the Godot game server
+ENTRYPOINT ["./Godot_v4.2.1-stable_linux.x86_64", "--headless", "--main-pack", "server.pck", "--server", "--port", "8080"]
+
+
+
