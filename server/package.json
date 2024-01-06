@@ -1,0 +1,36 @@
+{
+  "name": "server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "db:migrate": "bun drizzle-kit generate:sqlite",
+    "db:push": "bun src/db/migrate.ts",
+    "migrate": "bun db:migrate && bun db:push",
+    "dev": "bun run --watch src/index.ts",
+    "bundle": "bun build --target=bun src/index.ts --outfile ../index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@elysiajs/eden": "^0.8.0",
+    "@elysiajs/swagger": "^0.8.0",
+    "better-sqlite3": "^9.2.2",
+    "drizzle-orm": "^0.29.3",
+    "elysia": "latest"
+  },
+  "devDependencies": {
+    "@flydotio/dockerfile": "latest",
+    "@types/better-sqlite3": "^7.6.8",
+    "bun-types": "latest",
+    "drizzle-kit": "^0.20.9",
+    "esbuild-register": "^3.5.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dockerfile": {
+    "litefs": true
+  }
+}

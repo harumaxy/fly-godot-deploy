@@ -1,8 +1,15 @@
+FROM barichello/godot-ci as build
+WORKDIR /app
+COPY ./godot /app
+RUN godot --headless --export-debug "Linux/X11" /app/server.pck
+
+
 # Use a base image with the desired operating system
-FROM ubuntu:latest
+FROM ubuntu:latest as app
 
 # Set the working directory
 WORKDIR /app
+
 
 # Install necessary dependencies
 RUN apt-get update && apt-get install -y \
@@ -18,7 +25,7 @@ RUN curl -LO https://github.com/godotengine/godot-builds/releases/download/4.2.1
 RUN apt install -y fontconfig
 
 # Copy your Godot game server project to the container
-COPY . /app
+COPY --from=build /app/server.pck /app/server.pck
 
 EXPOSE 8080
 

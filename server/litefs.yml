@@ -1,0 +1,39 @@
+# based on: https://github.com/superfly/litefs/blob/main/cmd/litefs/etc/litefs.yml
+
+fuse:
+  dir: "/litefs"
+  allow-other: false
+  debug: false
+
+data:
+  dir: "/var/lib/litefs"
+  retention: "10m"
+  retention-monitor-interval: "1m"
+skip-sync: false
+exit-on-error: false
+http:
+  addr: ":20202"
+
+# LiteFS built-in HTTP proxy
+# これを使うと、POST, PUT などのメソッドのリクエストが自動でプライマリノードにルーティングされる(fly-replayを使う)
+proxy:
+  addr: ":3000"
+  target: "localhost:3001"
+  db: "sqlite.db"
+  debug: false
+  passthrough: []
+
+lease:
+  type: "consul"
+  advertise-url: "http://${HOSTNAME}.vm.${FLY_APP_NAME}.internal:20202"
+  candidate: ${FLY_REGION == PRIMARY_REGION}
+  promote: true
+
+  consul:
+    url: "${FLY_CONSUL_URL}"
+    key: "litefs/${FLY_APP_NAME}"
+
+exec:
+  - cmd: "bun db:push"
+    if-candidate: true
+  - cmd: "bun src/index.ts"

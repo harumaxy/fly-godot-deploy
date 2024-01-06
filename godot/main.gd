@@ -1,10 +1,16 @@
 extends Node2D
 
 var peer
+var DOMAIN
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
+
   var args = OS.get_cmdline_args()
+  if "--release" in args:
+    DOMAIN = "fdaa:2:a9c:a7b:22e:7993:1dd3:2"
+  else:
+    DOMAIN = "server.fly-godot-deploy.orb.local"
 
   
   if "--server" in args:
@@ -29,7 +35,7 @@ func start_server():
 
 func start_client():
   var client = ENetMultiplayerPeer.new()
-  client.create_client("server.godot.orb.local", 8080)
+  client.create_client(DOMAIN, 8080)
   multiplayer.multiplayer_peer = client
   multiplayer.connected_to_server.connect(func():
     print("connected to server")

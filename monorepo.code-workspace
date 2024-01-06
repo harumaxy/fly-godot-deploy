@@ -2,7 +2,7 @@
   "folders": [
     {
       "path": "./"
-    }
+    },
     {
       "path": "./godot"
     },
@@ -11,8 +11,14 @@
     }
   ],
   "settings": {
-    "deno.enable": true,
-    "deno.lint": true,
-    "deno.unstable": true
+    "sqltools.connections": [
+      {
+        "previewLimit": 50,
+        "driver": "SQLite",
+        "name": "game-gateway-local",
+        "database": "${workspaceFolder:server}/litefs/sqlite.db"
+      }
+    ],
+    "sqltools.useNodeRuntime": true
   }
 }

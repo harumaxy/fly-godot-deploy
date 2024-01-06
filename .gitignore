@@ -1,2 +1,6 @@
 .godot/
 *.pck
+node_modules/
+data/
+.envrc
+litefs/
