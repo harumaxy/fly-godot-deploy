@@ -2,23 +2,30 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "src/index.tsx",
   "scripts": {
     "db:migrate": "bun drizzle-kit generate:sqlite",
     "db:push": "bun src/db/migrate.ts",
     "migrate": "bun db:migrate && bun db:push",
-    "dev": "bun run --watch src/index.ts",
-    "bundle": "bun build --target=bun src/index.ts --outfile ../index.js"
+    "tw:build": "bun x tailwind build -i public/input.css -o public/output.css",
+    "dev": "bun --hot src/index.ts",
+    "bundle": "bun build --target=bun src/index.tsx --outfile dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "@elysiajs/eden": "^0.8.0",
+    "@elysiajs/html": "^0.8.0",
+    "@elysiajs/static": "^0.8.1",
     "@elysiajs/swagger": "^0.8.0",
     "better-sqlite3": "^9.2.2",
+    "date-fns": "^3.1.0",
     "drizzle-orm": "^0.29.3",
-    "elysia": "latest"
+    "drizzle-typebox": "^0.1.1",
+    "elysia": "latest",
+    "htmx.org": "^1.9.10",
+    "open": "^10.0.3"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "latest",
