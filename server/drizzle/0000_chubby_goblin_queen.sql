@@ -1,7 +1,10 @@
 CREATE TABLE `servers` (
 	`id` integer PRIMARY KEY AUTOINCREMENT NOT NULL,
-	`name` text NOT NULL,
+	`fly_machine_id` text NOT NULL,
+	`status` text NOT NULL,
+	`server_secret` text NOT NULL,
 	`domain` text NOT NULL,
+	`port` integer NOT NULL,
 	`last_updated` integer DEFAULT (unixepoch(CURRENT_TIMESTAMP)) NOT NULL,
 	`max_players` integer DEFAULT 2 NOT NULL
 );
@@ -13,5 +16,4 @@ CREATE TABLE `users` (
 	`phone` text(256)
 );
 --> statement-breakpoint
-CREATE UNIQUE INDEX `servers_domain_unique` ON `servers` (`domain`);--> statement-breakpoint
 CREATE UNIQUE INDEX `users_email_unique` ON `users` (`email`);

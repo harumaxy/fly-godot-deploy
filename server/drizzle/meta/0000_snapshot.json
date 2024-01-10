@@ -1,7 +1,7 @@
 {
   "version": "5",
   "dialect": "sqlite",
-  "id": "4291f548-5e38-405b-9009-c9bcaa372057",
+  "id": "e36ff76b-887a-47e0-887a-cc94d0c0a36b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "servers": {
@@ -14,8 +14,22 @@
           "notNull": true,
           "autoincrement": true
         },
-        "name": {
-          "name": "name",
+        "fly_machine_id": {
+          "name": "fly_machine_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "server_secret": {
+          "name": "server_secret",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -24,6 +38,13 @@
         "domain": {
           "name": "domain",
           "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "port": {
+          "name": "port",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
@@ -45,15 +66,7 @@
           "default": 2
         }
       },
-      "indexes": {
-        "servers_domain_unique": {
-          "name": "servers_domain_unique",
-          "columns": [
-            "domain"
-          ],
-          "isUnique": true
-        }
-      },
+      "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
