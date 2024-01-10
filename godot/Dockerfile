@@ -1,36 +1,24 @@
 FROM barichello/godot-ci as build
 WORKDIR /app
-COPY ./godot /app
+COPY . /app
 RUN godot --headless --export-debug "Linux/X11" /app/server.pck
 
 
-# Use a base image with the desired operating system
 FROM ubuntu:latest as app
-
-# Set the working directory
 WORKDIR /app
-
-
-# Install necessary dependencies
 RUN apt-get update && apt-get install -y \
   curl \
   unzip
-
-# Download and extract the Godot v4 binary
 RUN curl -LO https://github.com/godotengine/godot-builds/releases/download/4.2.1-stable/Godot_v4.2.1-stable_linux.x86_64.zip \
   && unzip Godot_v4.2.1-stable_linux.x86_64.zip \
   && rm Godot_v4.2.1-stable_linux.x86_64.zip
-
-# install libfontconfig.so
-RUN apt install -y fontconfig
-
-# Copy your Godot game server project to the container
+RUN apt-get install -y fontconfig
 COPY --from=build /app/server.pck /app/server.pck
 
-EXPOSE 8080
+# Godot can't listen the hostname, so we need to fix it to IP address
+RUN export IP_ADDR=$(cat /etc/hosts | grep fly-global-services | awk '{print $1}')
 
-# Set the entrypoint to start the Godot game server
-ENTRYPOINT ["./Godot_v4.2.1-stable_linux.x86_64", "--headless", "--main-pack", "server.pck", "--server", "--port", "8080"]
+ENTRYPOINT ["./Godot_v4.2.1-stable_linux.x86_64", "--headless", "--main-pack", "server.pck", "--server"]
 
 
 
