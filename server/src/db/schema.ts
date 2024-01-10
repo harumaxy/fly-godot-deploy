@@ -9,17 +9,25 @@ export const users = sqliteTable("users", {
   phone: text("phone", { length: 256 }),
 });
 
-export const servers = sqliteTable(
-  "servers",
-  {
-    id: integer("id").primaryKey({ autoIncrement: true }),
-    name: text("name").notNull(),
-    domain: text("domain").notNull().unique(),
-    last_updated: integer("last_updated", { mode: "timestamp" })
-      .notNull()
-      //sql
-      .default(sql`(unixepoch(CURRENT_TIMESTAMP))`),
-    max_players: integer("max_players").notNull().default(2),
-  },
-  (self) => ({})
-);
+export const servers = sqliteTable("servers", {
+  id: integer("id").primaryKey({ autoIncrement: true }),
+  fly_machine_id: text("fly_machine_id").notNull(),
+  status: text("status", {
+    enum: [
+      "stopped",
+      "started",
+      // in operation states
+      "creating",
+      "starting",
+      "stopping",
+      "destroying",
+    ],
+  }).notNull(),
+  server_secret: text("server_secret").notNull(),
+  domain: text("domain").notNull(),
+  port: integer("port").notNull(),
+  last_updated: integer("last_updated", { mode: "timestamp" })
+    .notNull()
+    .default(sql`(unixepoch(CURRENT_TIMESTAMP))`),
+  max_players: integer("max_players").notNull().default(2),
+});
