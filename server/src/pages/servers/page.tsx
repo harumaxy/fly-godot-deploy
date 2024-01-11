@@ -12,15 +12,16 @@ import { TextInput } from "@/component/TextInput";
 
 export const serversPlugin = new Elysia()
   .get("/", async ({ query }) => ServerListPage({ ...query }))
-  .get("/servers", ({ query }) => ServerListPage({ ...query }))
-  .get("/servers/:id/polling", async ({ params, set: { headers } }) =>
-    polling(Number(params.id), headers)
-  )
-  .post("/servers/create", ({}) => createServer())
-  .post("/servers/:id/start", ({ params }) => startServer(Number(params.id)))
-  .post("/servers/:id/stop", ({ params }) => stopServer(Number(params.id)))
-  .delete("servers/:id/delete", ({ params }) =>
-    deleteServer(Number(params.id))
+  .group("/servers", (g) =>
+    g
+      .get("", ({ query }) => ServerListPage({ ...query }))
+      .get("/:id/polling", async ({ params, set: { headers } }) =>
+        polling(Number(params.id), headers)
+      )
+      .post("/create", ({}) => createServer())
+      .post("/:id/start", ({ params }) => startServer(Number(params.id)))
+      .post("/:id/stop", ({ params }) => stopServer(Number(params.id)))
+      .delete("/:id/delete", ({ params }) => deleteServer(Number(params.id)))
   );
 
 async function sleep(ms: number) {
