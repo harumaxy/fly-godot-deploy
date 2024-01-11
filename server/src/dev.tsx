@@ -7,8 +7,8 @@ import { App } from ".";
 import { ServerWebSocket } from "bun";
 
 declare global {
-  var devWS: ElysiaWS<any, any, any>;
-  var isOpened: boolean;
+  var devWS: ElysiaWS<any, any, any> | undefined;
+  var isOpened: boolean | undefined;
 }
 
 const nextDevPageStatus = globalThis.isOpened ? "reloaded" : "opened";
