@@ -7,13 +7,15 @@ import { and, eq, isNotNull, like, or } from "drizzle-orm";
 import { Layout } from "@/component/Layout";
 import { TableRow } from "./TableRow";
 import { TableHeader } from "./TableHeader";
-import { ServerStatus } from "./StatusIndicator";
+import { ServerStatus, StatusIndicator } from "./StatusIndicator";
 import { TextInput } from "@/component/TextInput";
 
 export const serversPlugin = new Elysia()
   .get("/", async ({ query }) => ServerListPage({ ...query }))
   .get("/servers", ({ query }) => ServerListPage({ ...query }))
-  .get("/servers/:id/polling", async ({ params }) => polling(Number(params.id)))
+  .get("/servers/:id/polling", async ({ params, set: { headers } }) =>
+    polling(Number(params.id), headers)
+  )
   .post("/servers/create", ({}) => createServer())
   .post("/servers/:id/start", ({ params }) => startServer(Number(params.id)))
   .post("/servers/:id/stop", ({ params }) => stopServer(Number(params.id)))
@@ -184,7 +186,7 @@ async function deleteServer(id: number) {
   return <TableRow server={result[0]!} />;
 }
 
-async function polling(id: number) {
+async function polling(id: number, headers: Record<string, string>) {
   const server = await db
     .select()
     .from(serversTbl)
@@ -192,8 +194,11 @@ async function polling(id: number) {
     .then((res) => res[0]!);
 
   // skip updating status randomly
-  if (Math.random() < 0.5) {
-    return <TableRow server={server} />;
+  if (Math.random() > 0.1) {
+    // headers["HX-Retarget"] = `#status_indicator_${id}`;
+    // return <StatusIndicator server={server} />;
+    headers["HX-Reswap"] = `none`;
+    return <></>;
   }
 
   // Update status
@@ -213,7 +218,13 @@ async function polling(id: number) {
     .returning()
     .then((res) => res[0]!);
 
-  return <TableRow server={updated} />;
+  if (updated.status === "started" || updated.status === "stopped") {
+    return <TableRow server={updated} />;
+  }
+  // headers["HX-Retarget"] = `#status_indicator_${id}`;
+  // return <StatusIndicator server={updated} />;
+  headers["HX-Reswap"] = `none`;
+  return <></>;
 }
 
 const requestToFly = async (method: string, path: string, body?: any) => {

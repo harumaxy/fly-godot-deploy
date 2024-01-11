@@ -10,7 +10,7 @@ type Props = {
 export async function TableRow({ server }: Props) {
   return (
     <tr
-      id={`server_id_${server.id}`}
+      id={`server_row_${server.id}`}
       class="bg-white border-b dark:bg-gray-800 dark:border-gray-700"
     >
       {[
@@ -31,12 +31,7 @@ export async function TableRow({ server }: Props) {
                 value as string
               )
             ) {
-              return (
-                <StatusIndicator
-                  status={value as ServerStatus}
-                  server_id={server.id}
-                />
-              );
+              return <StatusIndicator server={server} />;
             }
             if (value instanceof Array) {
               return <ToolTip values={value as [string, string]} />;
@@ -50,7 +45,7 @@ export async function TableRow({ server }: Props) {
         <div class={"flex gap-2 justify-center"}>
           <button
             hx-post={`/servers/${server.id}/start`}
-            hx-target={`#server_id_${server.id}`}
+            hx-target={`#server_row_${server.id}`}
             hx-swap="outerHTML"
             hx-disabled-elt="this"
             class={`btn enabled:btn-green disabled:btn-disabled`}
@@ -60,7 +55,7 @@ export async function TableRow({ server }: Props) {
           </button>
           <button
             hx-post={`/servers/${server.id}/stop`}
-            hx-target={`#server_id_${server.id}`}
+            hx-target={`#server_row_${server.id}`}
             hx-swap="outerHTML"
             class={`btn enabled:btn-yellow disabled:btn-disabled`}
             disabled={server.status !== "started"}
@@ -69,7 +64,7 @@ export async function TableRow({ server }: Props) {
           </button>
           <button
             hx-delete={`/servers/${server.id}/delete`}
-            hx-target={`#server_id_${server.id}`}
+            hx-target={`#server_row_${server.id}`}
             hx-swap="delete"
             class={"btn btn-red"}
           >

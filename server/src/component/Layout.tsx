@@ -8,6 +8,7 @@ export function Layout(
         {/* Load htmx */}
         <script src="/htmx.org/dist/htmx.min.js" />
         <script src="/htmx.org/dist/ext/ws.js" />
+        <script src="/htmx.org/dist/ext/response-targets.js" />
         {/* Load tailwindcss output */}
         <link href="/public/output.css" rel="stylesheet" />
       </head>
