@@ -4,3 +4,4 @@ node_modules/
 data/
 .envrc
 litefs/
+create_server.sh
