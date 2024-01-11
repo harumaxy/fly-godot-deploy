@@ -3,31 +3,33 @@
 import Elysia, { ListenCallback } from "elysia";
 import { ElysiaWS } from "elysia/dist/ws";
 import open from "open";
+import { App } from ".";
+import { ServerWebSocket } from "bun";
 
 declare global {
   var devWS: ElysiaWS<any, any, any>;
-  var isAlreadyOpened: boolean;
+  var isOpened: boolean;
 }
 
-const devPageStatus = globalThis.isAlreadyOpened ? "reloaded" : "opened";
+const nextDevPageStatus = globalThis.isOpened ? "reloaded" : "opened";
 
-export async function dev(app: Elysia<any, any, any, any, any, any, any>) {
+export async function dev(app: App) {
   // build tailwind
   await Bun.spawn(["bun", "tw:build"]).exited;
 
   // listen dev websocket
   app.ws(`/live-reload`, {
     open: (ws_) => {
-      console.log(`dev page is ${devPageStatus}`);
+      console.log(`dev page is ${nextDevPageStatus}`);
       globalThis.devWS = ws_;
     },
   });
 
   // open window & send reload script if devWS is connected
   const afterListen: ListenCallback = async ({ hostname, port }) => {
-    if (!globalThis.isAlreadyOpened) {
+    if (!globalThis.isOpened) {
       await open(`http://${hostname}:${port}`);
-      globalThis.isAlreadyOpened = true;
+      globalThis.isOpened = true;
     }
 
     await globalThis.devWS?.send(
