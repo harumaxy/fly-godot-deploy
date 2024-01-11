@@ -16,6 +16,7 @@ export const servers = sqliteTable("servers", {
     enum: [
       "stopped",
       "started",
+      "error",
       // in operation states
       "creating",
       "starting",
