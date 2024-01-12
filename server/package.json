@@ -25,7 +25,8 @@
     "drizzle-typebox": "^0.1.1",
     "elysia": "latest",
     "htmx.org": "^1.9.10",
-    "open": "^10.0.3"
+    "open": "^10.0.3",
+    "swagger-typescript-api": "^13.0.3"
   },
   "devDependencies": {
     "@flydotio/dockerfile": "latest",
