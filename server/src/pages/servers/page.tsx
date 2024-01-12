@@ -2,55 +2,63 @@
 
 import { db } from "@/db/client";
 import { servers as serversTbl } from "@/db/schema";
-import { Elysia, t } from "elysia";
-import { and, eq, isNotNull, like, or } from "drizzle-orm";
+import { Context, Elysia, t } from "elysia";
+import { and, eq, like } from "drizzle-orm";
 import { Layout } from "@/component/Layout";
 import { TableRow } from "./TableRow";
 import { TableHeader } from "./TableHeader";
-import { ServerStatus, StatusIndicator } from "./StatusIndicator";
+import { ServerStatus } from "./StatusIndicator";
 import { TextInput } from "@/component/TextInput";
+import { Api as FlyAPI } from "@/fly/machine-api";
+import { machineConfig } from "@/utils/machine";
+
+const fly = new FlyAPI({
+  baseApiParams: {
+    format: "json",
+    headers: {
+      Authorization: `Bearer ${process.env.FLY_API_TOKEN}`,
+    },
+  },
+});
+
+const pathIdParam = { params: t.Object({ id: t.Number() }) };
+type PathIdParam = { params: { id: string } };
 
 export const serversPlugin = new Elysia()
-  .get("/", async ({ query }) => ServerListPage({ ...query }))
-  .group("/servers", (g) =>
-    g
-      .get("", ({ query }) => ServerListPage({ ...query }))
-      .get("/:id/polling", async ({ params, set: { headers } }) =>
-        polling(Number(params.id), headers)
-      )
-      .post("/create", ({}) => createServer())
-      .post("/:id/start", ({ params }) => startServer(Number(params.id)))
-      .post("/:id/stop", ({ params }) => stopServer(Number(params.id)))
-      .delete("/:id/delete", ({ params }) => deleteServer(Number(params.id)))
-  );
+  .get("/", async (ctx) => ServerListPage(ctx))
+  .group("/servers", (_group) =>
+    _group
+      .get("", (ctx) => ServerListPage(ctx))
+      .get("/:id/polling", (ctx) => polling(ctx))
+      .post("/create", (ctx) => createServer(ctx))
+      .post("/:id/start", (ctx) => startServer(ctx))
+      .post("/:id/stop", (ctx) => stopServer(ctx))
+      .delete("/:id/delete", (ctx) => deleteServer(ctx))
+  )
+  .onError(async ({ code, error, set }) => {
+    console.log("code", code);
+    console.log("error", error);
+    set.headers["HX-Retarget"] = "#error";
+    set.headers["HX-Reswap"] = "outerHTML";
+    return <div id="error">Some error</div>;
+  });
 
 async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function ServerListPage(props: {
-  machine_id?: string;
-  server_secret?: string;
-  max_players?: number;
-  status?: ServerStatus;
-}) {
-  const servers = await db
-    .select()
-    .from(serversTbl)
-    .where(
-      and(
-        props.machine_id
-          ? like(serversTbl.fly_machine_id, `%${props.machine_id}%`)
-          : undefined,
-        props.server_secret
-          ? like(serversTbl.server_secret, `%${props.server_secret}%`)
-          : undefined,
-        props.status ? eq(serversTbl.status, props.status) : undefined,
-        props.max_players
-          ? eq(serversTbl.max_players, props.max_players)
-          : undefined
-      )
-    );
+async function ServerListPage(ctx: Context) {
+  const { machine_id, server_secret, max_players, status, port } = ctx.query;
+
+  const sql = db.select().from(serversTbl);
+  // filters
+  if (machine_id) sql.where(like(serversTbl.fly_machine_id, `%${machine_id}%`));
+  if (server_secret)
+    sql.where(like(serversTbl.server_secret, `%${server_secret}%`));
+  if (status) sql.where(eq(serversTbl.status, status as ServerStatus));
+  if (max_players) sql.where(eq(serversTbl.max_players, Number(max_players)));
+
+  const servers = await sql;
 
   const nonce = Math.random().toString(36).substring(7);
   return (
@@ -73,6 +81,7 @@ async function ServerListPage(props: {
             <TextInput name="machine_id" />
             <TextInput name="server_secret" />
             <TextInput name="max_players" />
+            <TextInput name="port" />
             <div>
               <label
                 for="status"
@@ -90,6 +99,7 @@ async function ServerListPage(props: {
             </div>
           </div>
         </form>
+        <div id="error"></div>
 
         <button
           hx-post="/servers/create"
@@ -118,21 +128,31 @@ async function ServerListPage(props: {
   Server API 
 */
 
-async function createServer() {
-  const random = () => Math.random().toString(36).substring(7);
-  const random_machine_id = random();
-  const random_server_secret = random();
-  const startPort = 5000;
+function error(ctx: Context<{ params: any }>, msg: string) {
+  ctx.set.status = "Internal Server Error";
+  ctx.set.headers["HX-Retarget"] = "#error";
+  ctx.set.headers["HX-Reswap"] = "outerHTML";
+  return <div id="error">{msg}</div>;
+}
 
-  // await requestToFly("POST", "/apps");
+function findServer(id: number) {
+  return db
+    .select()
+    .from(serversTbl)
+    .where(eq(serversTbl.id, id))
+    .then((res) => res[0]);
+}
+
+async function createServer(ctx: Context<typeof pathIdParam>) {
+  let isError = false;
   const result = await db.transaction(async (trx) => {
-    const { id } = await trx
+    const newServer = await trx
       .insert(serversTbl)
       .values({
-        fly_machine_id: random_machine_id,
-        server_secret: random_server_secret,
-        domain: "godot-game-server-pool.fly.dev",
-        port: startPort,
+        fly_machine_id: "",
+        server_secret: Math.random().toString(36).substring(7),
+        domain: `${process.env.FLY_APP_NAME}.fly.dev`,
+        port: 0,
         status: "creating",
         last_updated: new Date(),
       })
@@ -141,101 +161,144 @@ async function createServer() {
       })
       .then((res) => res[0]);
 
+    const {
+      ok,
+      data: newFlyMachine,
+      status,
+    } = await fly.apps.machinesCreate(process.env.FLY_APP_NAME!, {
+      config: machineConfig(newServer.id),
+    });
+    if (!ok) {
+      await trx.rollback();
+      isError = true;
+    }
+
     return await trx
       .update(serversTbl)
       .set({
-        port: startPort + id,
+        fly_machine_id: newFlyMachine.id,
+        port: newFlyMachine.config?.services?.[0].ports?.[0].port,
       })
-      .where(eq(serversTbl.id, id))
+      .where(eq(serversTbl.id, newServer.id))
       .returning();
   });
+  if (isError) {
+    return error(ctx as any, "Failed to create server");
+  }
 
   return <TableRow server={result[0]!} />;
 }
 
-async function startServer(id: number) {
-  // requestToFly("POST", `/apps/godot/machines/${machine_id}/start`);
-  const result = await db
+async function startServer(ctx: Context<PathIdParam>) {
+  const { id } = ctx.params;
+  const server = await findServer(Number(id));
+  if (!server) {
+    return error(ctx as any, "Server not found");
+  }
+
+  await fly.apps.machinesStart(
+    process.env.FLY_APP_NAME!,
+    server.fly_machine_id
+  );
+
+  const updated = await db
     .update(serversTbl)
     .set({
       status: "starting",
       last_updated: new Date(),
     })
-    .where(eq(serversTbl.id, id))
+    .where(eq(serversTbl.id, Number(id)))
     .returning();
-  return <TableRow server={result[0]!} />;
+
+  return <TableRow server={updated[0]!} />;
 }
-async function stopServer(id: number) {
-  // requestToFly("POST", `/apps/godot/machines/${machine_id}/stop`);
+async function stopServer(ctx: Context<PathIdParam>) {
+  const { id } = ctx.params;
+  const server = await findServer(Number(id));
+  if (!server) {
+    return error(ctx as any, "Server not found");
+  }
+
+  await fly.apps.machinesStop(
+    process.env.FLY_APP_NAME!,
+    server.fly_machine_id,
+    {}
+  );
+
   const result = await db
     .update(serversTbl)
     .set({
       status: "stopping",
       last_updated: new Date(),
     })
-    .where(eq(serversTbl.id, id))
+    .where(eq(serversTbl.id, Number(id)))
     .returning();
   return <TableRow server={result[0]!} />;
 }
 
-async function deleteServer(id: number) {
-  // requestToFly("DELETE", `/apps/godot/machines/${machine_id}`);
+async function deleteServer(ctx: Context<PathIdParam>) {
+  const { id } = ctx.params;
+  const server = await findServer(Number(id));
+  if (!server) {
+    return error(ctx as any, "Server not found");
+  }
+
+  await fly.apps.machinesDelete(
+    process.env.FLY_APP_NAME!,
+    server.fly_machine_id
+  );
+
   const result = await db
     .delete(serversTbl)
-    .where(eq(serversTbl.id, id))
+    .where(eq(serversTbl.id, Number(id)))
     .returning();
-  return <TableRow server={result[0]!} />;
-}
 
-async function polling(id: number, headers: Record<string, string>) {
-  const server = await db
-    .select()
-    .from(serversTbl)
-    .where(eq(serversTbl.id, id))
-    .then((res) => res[0]!);
-
-  // skip updating status randomly
-  if (Math.random() > 0.1) {
-    // headers["HX-Retarget"] = `#status_indicator_${id}`;
-    // return <StatusIndicator server={server} />;
-    headers["HX-Reswap"] = `none`;
-    return <></>;
-  }
-
-  // Update status
-  const nextStatus =
-    server.status === "creating" || server.status === "starting"
-      ? "started"
-      : server.status === "stopping"
-      ? "stopped"
-      : server.status;
-  const updated = await db
-    .update(serversTbl)
-    .set({
-      status: nextStatus,
-      last_updated: new Date(),
-    })
-    .where(eq(serversTbl.id, id))
-    .returning()
-    .then((res) => res[0]!);
-
-  if (updated.status === "started" || updated.status === "stopped") {
-    return <TableRow server={updated} />;
-  }
-  // headers["HX-Retarget"] = `#status_indicator_${id}`;
-  // return <StatusIndicator server={updated} />;
-  headers["HX-Reswap"] = `none`;
   return <></>;
 }
 
-const requestToFly = async (method: string, path: string, body?: any) => {
-  const res = await fetch(`${process.env.FLY_API_HOSTNAME}/v1${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${process.env.FLY_API_TOKEN}`,
-      "content-type": "application/json",
-    },
-    body: body ? JSON.stringify(body) : undefined,
-  });
-  return res;
-};
+async function polling(ctx: Context<PathIdParam>) {
+  const { id } = ctx.params;
+  const server = await findServer(Number(id));
+  if (!server) {
+    return error(ctx as any, "Server not found");
+  }
+
+  let res;
+  try {
+    res = await fly.apps.machinesShow(
+      process.env.FLY_APP_NAME!,
+      server.fly_machine_id
+    );
+  } catch (e) {
+    console.log(e);
+    const errored = await db
+      .update(serversTbl)
+      .set({
+        status: "error",
+        last_updated: new Date(),
+      })
+      .where(eq(serversTbl.id, Number(id)))
+      .returning()
+      .then((res) => res[0]!);
+
+    return <TableRow server={errored} />;
+  }
+
+  // Update status
+  if (res.data.state === "started" || res.data.state === "stopped") {
+    const updated = await db
+      .update(serversTbl)
+      .set({
+        status: res.data.state,
+        last_updated: new Date(),
+      })
+      .where(eq(serversTbl.id, Number(id)))
+      .returning()
+      .then((res) => res[0]!);
+
+    return <TableRow server={updated} />;
+  } else {
+    ctx.set.headers["HX-Reswap"] = "none";
+    return <></>;
+  }
+}

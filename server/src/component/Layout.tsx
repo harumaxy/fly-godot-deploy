@@ -1,6 +1,4 @@
-export function Layout(
-  props: Html.PropsWithChildren<{ head?: string; title?: string }>
-) {
+export function Layout(props: Html.PropsWithChildren<{ head?: JSX.Element }>) {
   return (
     <html>
       <head>

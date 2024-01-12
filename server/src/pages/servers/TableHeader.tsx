@@ -2,7 +2,7 @@ export function TableHeader() {
   const headers = [
     "ID",
     "Fly Machine ID",
-    "Server Password",
+    "Server Secret",
     "Domain",
     "UDP Port",
     "Max Players",

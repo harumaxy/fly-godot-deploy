@@ -48,7 +48,7 @@ export async function TableRow({ server }: Props) {
             hx-target={`#server_row_${server.id}`}
             hx-swap="outerHTML"
             hx-disabled-elt="this"
-            class={`btn enabled:btn-green disabled:btn-disabled`}
+            class={`btn btn-green disabled:btn-disabled`}
             disabled={server.status !== "stopped"}
           >
             start
@@ -57,7 +57,7 @@ export async function TableRow({ server }: Props) {
             hx-post={`/servers/${server.id}/stop`}
             hx-target={`#server_row_${server.id}`}
             hx-swap="outerHTML"
-            class={`btn enabled:btn-yellow disabled:btn-disabled`}
+            class={`btn btn-yellow disabled:btn-disabled`}
             disabled={server.status !== "started"}
           >
             stop
@@ -65,8 +65,9 @@ export async function TableRow({ server }: Props) {
           <button
             hx-delete={`/servers/${server.id}/delete`}
             hx-target={`#server_row_${server.id}`}
-            hx-swap="delete"
-            class={"btn btn-red"}
+            hx-swap="delete swap:500ms"
+            class={"btn btn-red disabled:btn-disabled"}
+            disabled={server.status !== "stopped"}
           >
             destroy
           </button>

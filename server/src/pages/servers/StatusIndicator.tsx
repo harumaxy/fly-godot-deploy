@@ -13,6 +13,8 @@ export function StatusIndicator({ server }: Props) {
       <span class="text-green-500">started</span>
     ) : status === "stopped" ? (
       <span class="text-yellow-500">stopped</span>
+    ) : status === "error" ? (
+      <span class="text-red-500">error</span>
     ) : (
       <LoadingSpinner server={server} />
     );
