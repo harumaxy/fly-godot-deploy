@@ -81,17 +81,3 @@ bun install --production
 ```
 
 
-## deploy server
-
-な〜ぜか、 litefs を使うと結構バグってた  
-`cannot find primary, become primary failed` みたいな感じになる
-
-他のflyctlアプリでコマンドを叩いてたかも...
-
-```sh
-cd server
-flyctl launch
-flyctl volumes create harumaxy_game_gateway_litefs
-flyctl deploy
-```
-```
